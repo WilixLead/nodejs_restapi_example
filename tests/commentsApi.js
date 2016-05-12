@@ -5,6 +5,8 @@
 const should = require('should');
 const assert = require('assert');
 const request = require('supertest');
+const _ = require('lodash');
+const mongoose = require('mongoose');
 
 const appConfig = require('./../config/config.js');
 const ErrorList = require('./../helpers/APIError.js').list;
@@ -31,22 +33,31 @@ describe('Comments API', function () {
         });
     });
     
-    it('should create new comment and return his object', function (done) {
-        let body = commentHelper.makePost(someUsers[0]);
-        request(baseUrl)
-            .post('/comment')
-            .send(body)
-            .end(function (err, res) {
-                if (err) {
-                    throw err;
-                }
-                apiHelper.checkSuccessPart(res);
-                res.body.should.have.property('comment');
-                res.body.comment.should.have.property('_id');
-                parentComment = res.body.comment;
-                done();
-            });
-    });
+    // It need for make some top level comments for check tree results
+    function createTopLevelComment(userNumber) {
+        it('should create new comment and return his object', function (done) {
+            let body = commentHelper.makePost(someUsers[userNumber]);
+            request(baseUrl)
+                .post('/comment')
+                .send(body)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkSuccessPart(res);
+                    res.body.should.have.property('comment');
+                    res.body.comment.should.have.property('_id');
+                    parentComment = res.body.comment;
+                    done();
+                });
+        });
+    }
+    
+    for( let i = 0; i < 4; i++) {
+        var userArrayId = Math.floor(Math.random() * someUsers.length);
+        createTopLevelComment(userArrayId);
+    }
+    
     it('should create new comment as sub-comment', function (done) {
         let body = commentHelper.makePost(someUsers[1], parentComment._id);
         request(baseUrl)
@@ -181,7 +192,7 @@ describe('Comments API', function () {
                 }
                 apiHelper.checkSuccessPart(res);
                 res.body.should.have.property('comments');
-                res.body.comments.should.have.keys(
+                res.body.comments.should.have.properties(
                     parentComment._id,
                     parentParentComment._id,
                     parentParentParentComment._id,
@@ -222,6 +233,71 @@ describe('Comments API', function () {
                         throw err;
                     }
                     apiHelper.checkError(res, ErrorList.api.users.not_active);
+                    done();
+                });
+        });
+    });
+    it('should return max comment level', function (done) {
+        request(baseUrl)
+            .get('/comment/get_max_level?access_token=' + someUsers[1].access_token)
+            .end(function (err, res) {
+                if (err) {
+                    throw err;
+                }
+                apiHelper.checkSuccessPart(res);
+                res.body.should.have.property('level');
+                res.body.level.should.equal(2);
+                done();
+            });
+    });
+    it('should return users list ordered by comment length desc', function (done) {
+        request(baseUrl)
+            .get('/comment/top_speakers?access_token=' + someUsers[1].access_token)
+            .end(function (err, res) {
+                if (err) {
+                    throw err;
+                }
+                apiHelper.checkSuccessPart(res);
+                res.body.should.have.property('list');
+                commentHelper.getTopSpeakersIds((err, tops) => {
+                    if( err ) {
+                        throw err;
+                    }
+                    res.body.list.should.have.length(tops.length);
+                    _.each(tops, (top, index) => {
+                        res.body.list[index]._id.should.equal(top.user_id);
+                        res.body.list[index].comment_count.should.equal(top.comment_count);
+                    });
+                });
+                done();
+            });
+    });
+    it('should return empty users list, all users removed', function (done) {
+        userHelper.removeTestUsers(() => {
+            request(baseUrl)
+                .get('/comment/top_speakers?access_token=' + someUsers[1].access_token)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkSuccessPart(res);
+                    res.body.should.have.property('list');
+                    res.body.list.should.have.length(0);
+                    done();
+                });
+        });
+    });
+    it('should return 0 as comment level, be course no any comments', function (done) {
+        commentHelper.removeTestComments(() => {
+            request(baseUrl)
+                .get('/comment/get_max_level?access_token=' + someUsers[1].access_token)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkSuccessPart(res);
+                    res.body.should.have.property('level');
+                    res.body.level.should.equal(0);
                     done();
                 });
         });

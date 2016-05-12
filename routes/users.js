@@ -20,11 +20,10 @@ const userModel = require('./../models/user.js');
  * @apiSuccess {Object}  user User information.
  * @apiSuccess {String}  user.email Users email.
  * @apiSuccess {String}  user.title Users title.
- * @apiSuccess {String}  user.registered Users registration date.
  * @apiSuccess {String}  user.is_active Users activation state.
  */
 router.get('/', authHelper.checkAuth(), (req, res, next) => {
-    res.send({success: true, user: req.user});
+    res.send({success: true, user: req.user.toObject()});
 });
 
 /**
@@ -40,7 +39,6 @@ router.get('/', authHelper.checkAuth(), (req, res, next) => {
  * @apiSuccess {Object}  user User information.
  * @apiSuccess {String}  user.email Users email.
  * @apiSuccess {String}  user.title Users title.
- * @apiSuccess {String}  user.registered Users registration date.
  * @apiSuccess {String}  user.is_active Users activation state.
  */
 router.post('/', (req, res, next) => {
@@ -95,7 +93,6 @@ router.post('/', (req, res, next) => {
  * @apiSuccess {Object}  user User information.
  * @apiSuccess {String}  user.email Users email.
  * @apiSuccess {String}  user.title Users title.
- * @apiSuccess {String}  user.registered Users registration date.
  * @apiSuccess {String}  user.is_active Users activation state.
  */
 router.get('/activate_user', (req, res, next) => {

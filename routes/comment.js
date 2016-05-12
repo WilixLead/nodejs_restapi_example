@@ -9,10 +9,88 @@ const _ = require('lodash');
 const APIErrors = require('./../helpers/APIError.js');
 const authHelper = require('./../helpers/authMiddleware.js');
 const commentModel = require('./../models/comment.js');
+const userModel = require('./../models/user.js');
+
+/**
+ * @api {get} /comments/get_max_level Return max deep level
+ * @apiName CommentsGetMaxLevel
+ * @apiGroup Comments
+ * @apiPermission user
+ *
+ * @apiParam {String} access_token User auth token for permit access
+ *
+ * @apiSuccess {Boolean} success
+ * @apiSuccess {Number} level Number of available deep of comments
+ */
+router.get('/get_max_level', authHelper.checkAuth(), (req, res, next) => {
+    commentModel.aggregate([
+        {$project:{parentCount: {$size: "$parent"}}},
+        { "$sort": { "parentCount": -1 } },
+        { "$limit": 1 }
+    ]).exec((err, docs) => {
+        /* istanbul ignore next */
+        if( err ) {
+            return next(new APIErrors(APIErrors.list.server.dbo, err));
+        }
+        if( !docs || !docs.length ) {
+            return res.send({
+                success: true,
+                level: 0
+            });
+        }
+        res.send({
+            success: true,
+            level: docs[0].parentCount
+        });
+    });
+});
+
+/**
+ * @api {get} /comments/top_speakers Return users list ordered by comments count
+ * @apiName CommentsTopSpeakers
+ * @apiGroup Comments
+ * @apiPermission user
+ *
+ * @apiParam {String} access_token User auth token for permit access
+ *
+ * @apiSuccess {Boolean} success
+ * @apiSuccess {Number} list List of users ordered by comment count
+ */
+router.get('/top_speakers', authHelper.checkAuth(), (req, res, next) => {
+    userModel.aggregate([
+        {$lookup:{
+            from: 'comments',
+            localField: '_id',
+            foreignField: 'user_id',
+            as: 'comments'
+        }},
+        {$project:{
+            title: true, 
+            email: true,
+            comment_count: {$size: '$comments'}}
+        },
+        {$sort: {comment_count: -1}}
+    ]).exec((err, users) => {
+        /* istanbul ignore next */
+        if( err ) {
+            return next(new APIErrors(APIErrors.list.server.dbo, err));
+        }
+        if( !users || !users.length ) {
+            return res.send({
+                success: true,
+                list: []
+            });
+        }
+        res.send({
+            success: true,
+            list: users
+        });
+    });
+});
 
 /**
  * @api {get} /comments Return all comments
- * @apiName CommentGet
+ * @apiName CommentsGet
  * @apiGroup Comments
  * @apiPermission user
  *
@@ -73,7 +151,7 @@ router.get('/', authHelper.checkAuth(), (req, res, next) => {
 
 /**
  * @api {post} /comments Create new comment
- * @apiName CommentCreate
+ * @apiName CommentsCreate
  * @apiGroup Comments
  * @apiPermission user
  *

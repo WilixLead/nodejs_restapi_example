@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const escapeHtml = require('escape-html');
 
 let Schema = new mongoose.Schema({
-    user_id: {type: String, required: true, ref: 'User'},
+    user_id: {type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User'},
     text: {type: String, required: true},
     posted: {type: Date, required: true},
     parent: [{type: String, ref: 'Comment'}]

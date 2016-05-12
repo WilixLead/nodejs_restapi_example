@@ -21,7 +21,6 @@ const userModel = require('./../models/user.js');
  * @apiSuccess {Object}  user User information.
  * @apiSuccess {String}  user.email Users email.
  * @apiSuccess {String}  user.title Users title.
- * @apiSuccess {String}  user.registered Users registration date.
  * @apiSuccess {String}  user.is_active Users activation state.
  */
 router.post('/', (req, res, next) => {

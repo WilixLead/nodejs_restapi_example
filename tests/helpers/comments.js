@@ -3,7 +3,9 @@
  */
 'use strict';
 const Chance = require('chance');
+const _ = require('lodash');
 const commentModel = require('./../../models/comment.js');
+const userModel = require('./../../models/user.js');
 
 const chance = new Chance();
 
@@ -22,6 +24,37 @@ this.removeTestComments = function (callback) {
         }
         return callback(err, false);
     })
+};
+
+this.getTopSpeakersIds = function(callback) {
+    userModel.find({}).exec((err, users) => {
+        commentModel.find({}).exec((err, docs) => {
+            if( err ) {
+                return callback(err);
+            }
+            let userIdCommentCount = {};
+            docs.forEach((comment) => {
+                let user_id = comment.user_id.toString();
+                if( !userIdCommentCount[user_id] ) {
+                    userIdCommentCount[user_id] = 0;
+                }
+                userIdCommentCount[user_id]++;
+            });
+            users.forEach((user) => {
+                let user_id = user._id.toString();
+                if( userIdCommentCount[user_id] == undefined ) {
+                    userIdCommentCount[user_id] = 0;
+                }
+            });
+            
+            let tops = [];
+            _.each(userIdCommentCount, (count, user_id) => {
+                tops.push({user_id: user_id, comment_count: count});
+            });
+            tops = _.sortBy(tops, 'comment_count').reverse();
+            return callback(null, tops);
+        });
+    });
 };
 
 module.exports = this;

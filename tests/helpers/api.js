@@ -4,8 +4,8 @@
 
 /**
  * All errors returns via api equally. We should additionally check only types
- * @param res Response from superrequest
- * @param errorType API erro type
+ * @param res Response from superRequest
+ * @param errorType API error type
  */
 this.checkError = function(res, errorType) {
     res.status.should.equal(200);
@@ -18,7 +18,7 @@ this.checkError = function(res, errorType) {
 
 /**
  * All success responses should contain success
- * @param res Response from superrequest
+ * @param res Response from superRequest
  */
 this.checkSuccessPart = function(res) {
     res.status.should.equal(200);
