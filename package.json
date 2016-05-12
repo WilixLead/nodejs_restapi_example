@@ -1,0 +1,28 @@
+{
+  "name": "nodejs_test",
+  "version": "1.0.0",
+  "description": "Test project",
+  "main": "app.js",
+  "scripts": {
+    "test": "istanbul cover ./node_modules/mocha/bin/_mocha tests/test.js"
+  },
+  "author": "Aloyan Dmitry",
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*",
+    "assert": "*",
+    "supertest": "*",
+    "chance": "^1.0.3"
+  },
+  "dependencies": {
+    "async": "^2.0.0-rc.4",
+    "body-parser": "^1.15.1",
+    "email-validator": "^1.0.4",
+    "escape-html": "^1.0.3",
+    "express": "^4.13.4",
+    "jsonwebtoken": "^6.2.0",
+    "lodash": "^4.12.0",
+    "mongoose": "^4.4.15"
+  }
+}
