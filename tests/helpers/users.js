@@ -2,17 +2,22 @@
  * Created by Dmitry on 09.05.2016.
  */
 'use strict';
+const Chance = require('chance');
+const async = require('async');
 const userModel = require('./../../models/user.js');
+const authHelper = require('./../../helpers/authMiddleware.js');
+
+const chance = new Chance();
 
 this.testUserParams = {
-    email: 'testuser@testdomain.com',
+    email: 'test_testuser@testdomain.com',
     password: 'qwerty123',
     title: 'Iam Test User',
-    access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1NzMzNTc3NDJhNDQ4N2M4NTdjZDc0N2MiLCJyZWdpc3RlcmVkIjoiMjAxNi0wNS0xMVQxNjowMTo1Ni40NTJaIiwiZW1haWwiOiJ0ZXN0dXNlckB0ZXN0ZG9tYWluLmNvbSIsInRpdGxlIjoiSWFtIFRlc3QgVXNlciIsIl9fdiI6MCwiaXNfYWN0aXZlIjpmYWxzZSwiaWF0IjoxNDYyOTgyNTc0LCJleHAiOjE0NjMxNTUzNzR9.Z4qp0ezCWa1XZX4cSwY7U1nCGygwfqaitIv5td9wryc' 
+    access_token: '' 
 };
 
 this.createTestUser = function(callback) {
-    userModel.findOne({email: this.testUserParams.username}, function(err, user) {
+    userModel.findOne({email: this.testUserParams.username}, (err, user) => {
         if( !user ) {
             user = new userModel(this.testUserParams);
         }
@@ -21,9 +26,41 @@ this.createTestUser = function(callback) {
     })
 };
 
-this.removeTestUser = function(callback) {
-    userModel.findOneAndRemove({email: this.testUserParams.email}, function(err, doc) {
-        if( !err && doc ) {
+this.makeSomeUsers = function(count, callback) {
+    let queue = [];
+    for( let i = 0; i < count; i++ ) {
+        queue.push((done) => {
+            let params = {
+                email: 'test_' + chance.email(),
+                password: userModel.hashPwd(chance.string({length: 5})),
+                title: chance.name(),
+                is_active: true,
+                registered: new Date()
+            };
+            let newUser = new userModel(params);
+            newUser.save((err) => {
+                newUser = newUser.toPublic();
+                newUser.access_token = authHelper.makeToken(newUser);
+                done(err, newUser);
+            });
+        });
+    }
+    async.parallel(queue, callback);
+};
+
+this.deactivateUser = function(user_id, callback) {
+    userModel.findById(user_id, (err, user) => {
+        if( err ) {
+            callback(err);
+        }
+        user.is_active = false;
+        user.save(callback);
+    });
+};
+
+this.removeTestUsers = function(callback) {
+    userModel.find({email: /^test_/}).remove((err) => {
+        if( !err ) {
             return callback(null, true);
         }
         return callback(err, false);

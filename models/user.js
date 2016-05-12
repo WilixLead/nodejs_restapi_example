@@ -35,9 +35,7 @@ Schema.statics.hashPwd = function (pwdStr) {
 };
 
 Schema.statics.validateInput = function(obj) {
-    if( !obj || typeof obj != 'object') {
-        return false;
-    } else if( !obj.email || typeof obj.email != 'string' || obj.email.length < 2 ) {
+    if( !obj.email || typeof obj.email != 'string' || obj.email.length < 2 ) {
         return false;
     } else if( !emailValidator.validate(obj.email) ) {
         return false;

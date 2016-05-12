@@ -7,10 +7,11 @@ const userModel = require('./../../models/user.js');
 
 const chance = new Chance();
 
-this.makePost = function(parent_id, text) {
+this.makePost = function(from_user, parent_id, text) {
     return {
         parent_id: parent_id || 0,
-        text: text || chance.paragraph()
+        text: text || chance.paragraph(),
+        access_token: from_user.access_token
     };
 };
 

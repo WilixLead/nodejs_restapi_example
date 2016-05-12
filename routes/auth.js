@@ -33,13 +33,17 @@ router.post('/', (req, res, next) => {
     userModel.findOne({
         email: req.body.email,
         password: passwordHash
-        //is_active: true - TODO if need prevent search inactive users
     }, (err, user) => {
+        /* istanbul ignore next */
         if( err ) {
             return next(new APIErrors(APIErrors.list.server.dbo, err));
         }
-        if( !user ) { // means user already exists 
-            return next(new APIErrors(APIErrors.list.api.users.user_not_found));
+        if( !user ) {
+            return next(new APIErrors(APIErrors.list.api.users.not_found));
+        }
+        if( !user.is_active ) {
+            let aErr = new APIErrors(APIErrors.list.api.users.not_active);
+            return next(aErr);
         }
         let response = {
             success: true,

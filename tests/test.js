@@ -7,7 +7,7 @@ const userHelper = require('./helpers/users.js');
 
 before((done) => {
     app.then(() => {
-        userHelper.removeTestUser(done);
+        userHelper.removeTestUsers(done);
     });
 });
 

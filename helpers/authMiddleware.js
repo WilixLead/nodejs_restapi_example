@@ -6,6 +6,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const cert = fs.readFileSync(__dirname + '/../private.key');
+const userModel = require('./../models/user.js');
 const APIErrors = require('./APIError.js');
 
 class helper {
@@ -29,26 +30,26 @@ class helper {
             
             if( !token ) {
                 let aErr = new APIErrors(APIErrors.list.api.users.no_access_token);
-                if( config.continueOnFail ) {
-                    req.authError = aErr;
-                    req.user = null; // Clear or create var
-                    return next();
-                }
                 return next(aErr);
             }
             
             jwt.verify(token, cert, function(err, decoded) {
-                req.user = decoded;
                 if( err ) {
                     let aErr = new APIErrors(APIErrors.list.api.users.not_authenticated);
-                    if( config.continueOnFail ) {
-                        req.authError = aErr;
-                        req.user = null; // Clear or create var
-                        return next();
-                    }
                     return next(aErr);
                 }
-                return next();
+                userModel.findById(decoded.id).exec((err, user) => {
+                    /* istanbul ignore next */
+                    if( err ) {
+                        return next(new APIErrors(APIErrors.list.server.dbo, err));
+                    }
+                    if( user && !user.is_active ) {
+                        let aErr = new APIErrors(APIErrors.list.api.users.not_active);
+                        return next(aErr);
+                    }
+                    req.user = user;
+                    return next();
+                });
             });
         }
     }
@@ -59,7 +60,7 @@ class helper {
      * @returns String
      */
     makeToken(user) {
-        return jwt.sign(user, cert, {
+        return jwt.sign({id: user._id.toString()}, cert, {
             expiresIn: '2 days'
         });
     };

@@ -23,11 +23,11 @@ const commentModel = require('./../models/comment.js');
  * @apiSuccess {Array}  comments Array of Comment objects
  */
 router.get('/', authHelper.checkAuth(), (req, res, next) => {
-    commentModel.find({}).exec((err, comments) => {
+    commentModel.find({}).populate('user_id').exec((err, comments) => {
         if( err ) {
             return next(new APIErrors(APIErrors.list.server.dbo, err));
         }
-        if( comments && comments.length && req.body.tree_view ) {
+        if( comments && comments.length && req.query.tree_view ) {
             let refComments = {};
             comments.forEach(function(comment) { // Make associate
                 comment.child = {};
@@ -39,9 +39,6 @@ router.get('/', authHelper.checkAuth(), (req, res, next) => {
                     for (var i = 0; i < comment.parent.length; i++) {
                         if (!prevParent) {
                             prevParent = refComments[comment.parent[i]];
-                            continue;
-                        }
-                        if( !prevParent ){
                             continue;
                         }
                         if (!prevParent.child[comment.parent[i]]) {
@@ -101,7 +98,12 @@ router.post('/', authHelper.checkAuth(), (req, res, next) => {
             if( req.body.parent_id && req.body.parent_id.length ) {
                 commentModel.findById(req.body.parent_id).exec((err, doc) => {
                     if( err ) {
-                        return done(new APIErrors(APIErrors.list.server.dbo, err));
+                        if( err.name == 'CastError' && err.kind == 'ObjectId' ) {
+                            return done(new APIErrors(APIErrors.list.api.comments.parent_comment_not_found));
+                        } else {
+                            /* istanbul ignore next */
+                            return done(new APIErrors(APIErrors.list.server.dbo, err));
+                        }
                     }
                     if( !doc ) {
                         return done(new APIErrors(APIErrors.list.api.comments.parent_comment_not_found));
@@ -127,6 +129,7 @@ router.post('/', authHelper.checkAuth(), (req, res, next) => {
                 }
             }
             comment.save((err) => {
+                /* istanbul ignore next */
                 if( err ) {
                     return done(new APIErrors(APIErrors.list.server.dbo, err));
                 }

@@ -40,7 +40,7 @@ const errors = {
                 message: 'User already exist',
                 level: 'api'
             },
-            user_not_found: {
+            not_found: {
                 code: 2202,
                 key: 'UserNotFound',
                 message: 'User not found',
@@ -56,6 +56,18 @@ const errors = {
                 code: 2205,
                 key: 'NoAccessTokenProvided',
                 message: 'Access token not provided',
+                level: 'api'
+            },
+            already_activated: {
+                code: 2206,
+                key: 'UserAlreadyActivated',
+                message: 'User already activated',
+                level: 'api'
+            },
+            not_active: {
+                code: 2207,
+                key: 'UserNotActive',
+                message: 'User not active. Requires activation first',
                 level: 'api'
             }
         },
@@ -81,6 +93,7 @@ class APIError {
         this.type = type;
         this.originalError = originalError;
         
+        /* istanbul ignore else */
         if( appConfig.server.logErrors.indexOf(this.type.level) != -1 ) {
             console.error(this.toObject(true));
         }
@@ -91,13 +104,18 @@ class APIError {
         if( extended == undefined ) {
             extended = false;
         }
+        /* istanbul ignore else */
         if( appConfig.server.extendedErrors || extended ) {
             _.merge(this.type, {originalError: this.originalError});
         }
         return this.type;
     }
-    
+
+    /**
+     * This function can be called from express and some another parts
+     */
     toString(extended) {
+        /* istanbul ignore next */
         if( extended == undefined ) {
             extended = false;
         }

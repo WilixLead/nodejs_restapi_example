@@ -54,6 +54,7 @@ router.post('/', (req, res, next) => {
     user.is_active = false;
     
     userModel.findOne({email: user.email}, (err, doc) => {
+        /* istanbul ignore next */
         if( err ) {
             return next(new APIErrors(APIErrors.list.server.dbo, err));
         }
@@ -61,6 +62,7 @@ router.post('/', (req, res, next) => {
             return next(new APIErrors(APIErrors.list.api.users.already_exist));
         }
         user.save((err) => {
+            /* istanbul ignore next */
             if( err ) {
                 return next(new APIErrors(APIErrors.list.server.dbo, err));
             }
@@ -71,7 +73,13 @@ router.post('/', (req, res, next) => {
                 // for confirm user's email
             }
             
-            res.send({success: true, user: user.toPublic()});
+            res.send({
+                success: true, 
+                user: user.toPublic(),
+                // FIXME Note! Activation code returns now only for this example prject
+                // for making tests more simple. In real projects should be send email!
+                activationCode: activationCode
+            });
         })
     });
 });
@@ -91,20 +99,24 @@ router.post('/', (req, res, next) => {
  * @apiSuccess {String}  user.is_active Users activation state.
  */
 router.get('/activate_user', (req, res, next) => {
-    if( !req.query.activation_code || req.query.activation_code.length <= 0 ) {
+    if( !req.query.activation_code || !req.query.activation_code.length ) {
         return next(new APIErrors(APIErrors.list.api.bad_params));
     }
 
     userModel.findOne({activation_code: req.query.activation_code}, (err, user) => {
+        /* istanbul ignore next */
         if( err ) {
             return next(new APIErrors(APIErrors.list.server.dbo, err));
         }
         if( !user ) {
-            return next(new APIErrors(APIErrors.list.api.users.user_not_found));
+            return next(new APIErrors(APIErrors.list.api.users.not_found));
+        }
+        if( user.is_active ) {
+            return next(new APIErrors(APIErrors.list.api.users.already_activated));
         }
         user.is_active = true;
-        user.activation_code = '';
         user.save((err) => {
+            /* istanbul ignore next */
             if( err ) {
                 return next(new APIErrors(APIErrors.list.server.dbo, err));
             }

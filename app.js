@@ -49,6 +49,7 @@ module.exports = new Promise((resolve, reject) => {
     db.once('open', () => {
         app.listen(appConfig.server.port, function (err) {
             if (err) {
+                /* istanbul ignore next */
                 reject(new APIError(APIError.list.server.internal, err));
             } else {
                 /* istanbul ignore next */
@@ -58,6 +59,7 @@ module.exports = new Promise((resolve, reject) => {
         });
     });
     db.on('error', (err) => {
+        /* istanbul ignore next */
         reject(new APIError(APIError.list.server.internal, err));
     });
 });

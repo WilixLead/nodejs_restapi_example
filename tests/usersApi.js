@@ -6,6 +6,7 @@ const should = require('should');
 const assert = require('assert');
 const request = require('supertest');
 
+const apiHelper = require('./helpers/api.js');
 const appConfig = require('./../config/config.js');
 const ErrorList = require('./../helpers/APIError.js').list;
 const userHelper = require('./helpers/users.js');
@@ -13,11 +14,7 @@ const userHelper = require('./helpers/users.js');
 describe('Users API', () => {
     let baseUrl = 'http://localhost:' + appConfig.server.port;
     let access_token = '';
-
-    after((done) => {
-        userHelper.testUserParams.access_token = access_token;
-        done();
-    });
+    let activationCode = '';
     
     describe('Signup', () => {
         let url = baseUrl + '/user';
@@ -32,15 +29,7 @@ describe('Users API', () => {
                     if (err) {
                         throw err;
                     }
-                    // this is should.js syntax, very clear
-                    res.status.should.equal(200);
-
-                    res.body.should.have.property('success');
-                    res.body.success.should.equal(false);
-
-                    res.body.should.have.property('error');
-                    res.body.error.should.have.property('message');
-                    res.body.error.message.should.equal(ErrorList.api.bad_params.message);
+                    apiHelper.checkError(res, ErrorList.api.bad_params);
                     done();
                 });
         }
@@ -58,14 +47,11 @@ describe('Users API', () => {
                     if (err) {
                         throw err;
                     }
-                    // this is should.js syntax, very clear
-                    res.status.should.equal(200);
-
-                    res.body.should.have.property('success');
-                    res.body.success.should.equal(true);
-
+                    apiHelper.checkSuccessPart(res);
                     res.body.should.have.property('user');
                     res.body.user.should.have.property('_id');
+                    
+                    activationCode = res.body.activationCode;
                     done();
                 });
         });
@@ -82,12 +68,7 @@ describe('Users API', () => {
                     if (err) {
                         throw err;
                     }
-                    res.status.should.equal(200);
-                    res.body.should.have.property('success');
-                    res.body.success.should.equal(false);
-                    res.body.should.have.property('error');
-                    res.body.error.should.have.property('message');
-                    res.body.error.message.should.equal(ErrorList.api.users.already_exist.message);
+                    apiHelper.checkError(res, ErrorList.api.users.already_exist);
                     done();
                 });
         });
@@ -127,6 +108,57 @@ describe('Users API', () => {
         });
     });
     
+    describe('Activate user', () => {
+        let url = baseUrl + '/user/activate_user';
+
+        it('should return error, activation code not provided', (done) => {
+            request(url)
+                .get('/')
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkError(res, ErrorList.api.bad_params);
+                    done();
+                });
+        });
+        it('should activate user by code and return his profile', (done) => {
+            request(url)
+                .get('/?activation_code=' + activationCode)
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkSuccessPart(res);
+                    res.body.should.have.property('user');
+                    res.body.user.should.have.property('_id');
+                    done();
+                });
+        });
+        it('should return already activated error', (done) => {
+            request(url)
+                .get('/?activation_code=' + activationCode)
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkError(res, ErrorList.api.users.already_activated);
+                    done();
+                });
+        });
+        it('should return user not found error', (done) => {
+            request(url)
+                .get('/?activation_code=veryWrongActivationCode')
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkError(res, ErrorList.api.users.not_found);
+                    done();
+                });
+        });
+    });
+    
     describe('Authenticate', () => {
         it('should return access_token', (done) => {
             let body = {
@@ -140,27 +172,87 @@ describe('Users API', () => {
                     if (err) {
                         throw err;
                     }
-                    res.status.should.equal(200);
-                    res.body.should.have.property('success');
+                    apiHelper.checkSuccessPart(res);
                     res.body.should.have.property('access_token');
                     res.body.should.have.property('user');
-                    res.body.success.should.equal(true);
 
-                    access_token = res.body.access_token;
+                    userHelper.testUserParams.access_token = res.body.access_token;
+                    done();
+                });
+        });
+        it('should return user not found error', (done) => {
+            let body = {
+                email: 'something',
+                password: 'something2'
+            };
+            request(baseUrl)
+                .post('/auth')
+                .send(body)
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkError(res, ErrorList.api.users.not_found);
                     done();
                 });
         });
         it('should return user data by access_token', (done) => {
             request(baseUrl)
-                .get('/user?access_token=' + access_token)
+                .get('/user?access_token=' + userHelper.testUserParams.access_token)
                 .end((err, res) => {
                     if (err) {
                         throw err;
                     }
-                    res.status.should.equal(200);
-                    res.body.should.have.property('success');
+                    apiHelper.checkSuccessPart(res);
                     res.body.should.have.property('user');
-                    res.body.success.should.equal(true);
+                    res.body.user.should.have.property('_id');
+                    
+                    userHelper.testUserParams._id = res.body.user._id;
+                    done();
+                });
+        });
+        it('should return not_authenticated error, wrong access_token provided', (done) => {
+            request(baseUrl)
+                .get('/user?access_token=c78hrh63487crh634c6_wrong')
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkError(res, ErrorList.api.users.not_authenticated);
+                    done();
+                });
+        });
+        it('should return not_active error', (done) => {
+            userHelper.deactivateUser(userHelper.testUserParams._id, (err) => {
+                let body = {
+                    email: userHelper.testUserParams.email,
+                    password: userHelper.testUserParams.password
+                };
+                request(baseUrl)
+                    .post('/auth')
+                    .send(body)
+                    .end((err, res) => {
+                        if (err) {
+                            throw err;
+                        }
+                        apiHelper.checkError(res, ErrorList.api.users.not_active);
+                        done();
+                    });
+            });
+        });
+        it('should return bad_params error', (done) => {
+            let body = {
+                email: '',
+                password: ''
+            };
+            request(baseUrl)
+                .post('/auth')
+                .send(body)
+                .end((err, res) => {
+                    if (err) {
+                        throw err;
+                    }
+                    apiHelper.checkError(res, ErrorList.api.bad_params);
                     done();
                 });
         });
