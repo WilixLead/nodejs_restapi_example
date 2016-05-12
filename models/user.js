@@ -17,8 +17,10 @@ let Schema = new mongoose.Schema({
 
 Schema.methods.toPublic = function () {
     let obj = this.toObject();
+    delete obj['__v'];
     delete obj.password;
     delete obj.activation_code;
+    delete obj.registered;
     return obj;
 };
 

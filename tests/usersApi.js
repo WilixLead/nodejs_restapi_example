@@ -15,7 +15,7 @@ describe('Users API', () => {
     let baseUrl = 'http://localhost:' + appConfig.server.port;
     let access_token = '';
     let activationCode = '';
-    
+
     describe('Signup', () => {
         let url = baseUrl + '/user';
 

@@ -12,6 +12,12 @@ let Schema = new mongoose.Schema({
     parent: [{type: String, ref: 'Comment'}]
 });
 
+Schema.methods.toPublic = function() {
+    let obj = this.toObject();
+    delete obj['__v'];
+    return obj;
+};
+
 Schema.statics.escapeText = function(text) {
     // XXX We can add additional escapers/filters to here
     return escapeHtml(text.trim());

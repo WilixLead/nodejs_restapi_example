@@ -24,29 +24,33 @@ const commentModel = require('./../models/comment.js');
  */
 router.get('/', authHelper.checkAuth(), (req, res, next) => {
     commentModel.find({}).populate('user_id').exec((err, comments) => {
+        /* istanbul ignore next */
         if( err ) {
             return next(new APIErrors(APIErrors.list.server.dbo, err));
         }
+        let refComments = {};
+        comments.forEach(function(comment) { // Make associate
+            refComments[comment._id] = comment.toPublic();
+            refComments[comment._id].user = comment.user_id.toPublic();
+            refComments[comment._id].user_id = comment.user_id._id;
+            refComments[comment._id].child = {};
+        });
+        
         if( comments && comments.length && req.query.tree_view ) {
-            let refComments = {};
-            comments.forEach(function(comment) { // Make associate
-                comment.child = {};
-                refComments[comment._id] = comment;
-            });
             _.each(refComments, function(comment) {
                 if (comment.parent && comment.parent.length) {
                     var prevParent = null;
-                    for (var i = 0; i < comment.parent.length; i++) {
+                    comment.parent.forEach((parent) => {
                         if (!prevParent) {
-                            prevParent = refComments[comment.parent[i]];
-                            continue;
+                            prevParent = refComments[parent];
+                            return;
                         }
-                        if (!prevParent.child[comment.parent[i]]) {
-                            prevParent.child[comment.parent[i]] = refComments[comment.parent[i]];
+                        if (!prevParent.child[parent]) {
+                            prevParent.child[parent] = refComments[parent];
                         }
-                        prevParent = prevParent.child[comment.parent[i]];
-                    }
-                    prevParent.child[comment.id] = comment;
+                        prevParent = prevParent.child[parent];
+                    });
+                    prevParent.child[comment._id] = comment;
                 }
             });
             _.each(refComments, function(comment, key) {
@@ -61,7 +65,7 @@ router.get('/', authHelper.checkAuth(), (req, res, next) => {
         } else {
             return res.send({
                 success: true,
-                comments: comments
+                comments: refComments
             });
         }
     });
@@ -140,7 +144,8 @@ router.post('/', authHelper.checkAuth(), (req, res, next) => {
         if( err ) {
             return next(err);
         }
-        comment = comment.toObject();
+        comment = comment.toPublic();
+        comment.user = req.user.toPublic();
         if( comment.parent && comment.parent.length ) {
             comment.parent_id = comment.parent[comment.parent.length - 1];
             delete comment.parent;

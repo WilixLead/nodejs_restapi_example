@@ -17,6 +17,8 @@ describe('Comments API', function () {
     let someUsers = [];
     let parentComment = null;
     let parentParentComment = null;
+    let parentParentParentComment = null;
+    let parentParentParentComment2 = null;
     
     // Need access token for work
     before((done) => {
@@ -79,6 +81,7 @@ describe('Comments API', function () {
                 res.body.comment.should.have.property('parent_id');
                 res.body.comment._id.should.not.equal(parentParentComment._id);
                 res.body.comment.parent_id.should.equal(parentParentComment._id);
+                parentParentParentComment = res.body.comment;
                 done();
             });
     });
@@ -97,6 +100,7 @@ describe('Comments API', function () {
                 res.body.comment.should.have.property('parent_id');
                 res.body.comment._id.should.not.equal(parentParentComment._id);
                 res.body.comment.parent_id.should.equal(parentParentComment._id);
+                parentParentParentComment2 = res.body.comment;
                 done();
             });
     });
@@ -177,6 +181,12 @@ describe('Comments API', function () {
                 }
                 apiHelper.checkSuccessPart(res);
                 res.body.should.have.property('comments');
+                res.body.comments.should.have.keys(
+                    parentComment._id,
+                    parentParentComment._id,
+                    parentParentParentComment._id,
+                    parentParentParentComment2._id
+                );
                 done();
             });
     });
@@ -189,6 +199,12 @@ describe('Comments API', function () {
                 }
                 apiHelper.checkSuccessPart(res);
                 res.body.should.have.property('comments');
+                res.body.comments.should.have.property(parentComment._id);
+                res.body.comments[parentComment._id].child.should.have.property(parentParentComment._id);
+                res.body.comments[parentComment._id].child[parentParentComment._id]
+                    .child.should.have.property(parentParentParentComment._id);
+                res.body.comments[parentComment._id].child[parentParentComment._id]
+                    .child.should.have.property(parentParentParentComment2._id);
                 done();
             });
     });

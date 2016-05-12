@@ -64,7 +64,7 @@ this.removeTestUsers = function(callback) {
             return callback(null, true);
         }
         return callback(err, false);
-    })
+    });
 };
 
 module.exports = this;

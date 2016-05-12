@@ -4,9 +4,15 @@
 'use strict';
 const app = require('./../app.js');
 const userHelper = require('./helpers/users.js');
+const commentHelper = require('./helpers/comments.js');
 
 before((done) => {
-    app.then(() => {
+    app.then(() => { done() }); // Init db connection and express server
+});
+
+// Drop created comments and users
+after((done) => {
+    commentHelper.removeTestComments(() => {
         userHelper.removeTestUsers(done);
     });
 });
